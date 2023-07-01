@@ -27,5 +27,7 @@ exports.login = (req, res, next) => {
   }
 
   const token = jwt.sign(req.user, "supersecretkey", { expiresIn: "1h" });
-  res.status(200).json({ token, _id: req.user._id.toString()});
+  const { password, _id: id, ...other } = req.user;
+
+  res.status(200).json({ token, currentUser: {id, ...other }});
 };
