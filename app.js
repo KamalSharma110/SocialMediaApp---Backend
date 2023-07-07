@@ -19,6 +19,7 @@ const diskStorage = multer.diskStorage({
 });
 
 app.use(bodyParser.json());
+app.use('/files', express.static(path.join(__dirname, 'files')));
 app.use(multer({ storage: diskStorage }).single("file"));
 
 app.use((req, res, next) => {
