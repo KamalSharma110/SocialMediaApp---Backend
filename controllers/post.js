@@ -20,8 +20,7 @@ exports.getPosts = (req, res, next) => {
 exports.addRemoveFriend = (req, res, next) => {
   const { currentUserId, friendId } = req.body;
 
-
-  if (req.query.add === 'true') {
+  if (req.query.add === "true") {
     Post.addFriend(currentUserId, friendId)
       .then(() => {
         Post.addFriend(friendId, currentUserId);
@@ -45,5 +44,43 @@ exports.addRemoveFriend = (req, res, next) => {
 exports.getFriends = (req, res, next) => {
   Post.getFriends(req.user._id)
     .then((result) => res.status(200).json({ friends: result }))
+    .catch((err) => next(err));
+};
+
+exports.likePost = (req, res, next) => {
+  Post.likePost(req.params.postId, req.user._id)
+    .then(() => res.status(200).json({ message: "Liked the post!" }))
+    .catch((err) => next(err));
+};
+
+exports.unlikePost = (req, res, next) => {
+  Post.unlikePost(req.params.postId, req.user._id)
+    .then(() => res.status(200).json({ message: "Unliked the post!" }))
+    .catch((err) => next(err));
+};
+
+exports.getPostStats = (req, res, next) => {
+  Post.getPostStats(req.params.postId)
+    .then((result) =>
+      res
+        .status(200)
+        .json({
+          users: result?.users || [],
+          totalLikes: result?.totalLikes || 0,
+          totalComments: result?.totalComments || 0,
+        })
+    )
+    .catch((err) => next(err));
+};
+
+exports.addComment = (req, res, next) => {
+  Post.addComment(req.params.postId, req.body, req.user._id)
+    .then(() => res.status(200).json({ message: "Comment Added!" }))
+    .catch((err) => next(err));
+};
+
+exports.getComments = (req, res, next) => {
+  Post.getComments(req.params.postId)
+    .then((result) => res.status(200).json({ comments: result }))
     .catch((err) => next(err));
 };

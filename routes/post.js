@@ -13,4 +13,14 @@ router.post('/friend', isAuth, postControllers.addRemoveFriend);
 
 router.get('/friends', isAuth, postControllers.getFriends);
 
+router.get('/like-post/:postId', isAuth, postControllers.likePost);
+
+router.get('/unlike-post/:postId', isAuth, postControllers.unlikePost);
+
+router.get('/liked-users/:postId', isAuth, postControllers.getPostStats);
+
+router.post('/comment/:postId', isAuth, postControllers.addComment);
+
+router.get('/comments/:postId', isAuth, postControllers.getComments);
+
 module.exports = router;

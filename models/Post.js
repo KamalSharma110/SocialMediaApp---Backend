@@ -47,24 +47,111 @@ module.exports = class Post {
   static getFriends(currentUserId) {
     const db = getDb();
 
-    return db.collection('Friends').aggregate([
-      { $match: { _id: new mongodb.ObjectId(currentUserId) } },
-      { $unwind: '$friends' },
+    return db
+      .collection("Friends")
+      .aggregate([
+        { $match: { _id: new mongodb.ObjectId(currentUserId) } },
+        { $unwind: "$friends" },
+        {
+          $project: {
+            friend: { $convert: { input: "$friends", to: "objectId" } },
+          },
+        },
+        {
+          $lookup: {
+            from: "Users",
+            localField: "friend",
+            foreignField: "_id",
+            as: "friendDetails",
+          },
+        },
+        { $unwind: "$friendDetails" },
+        {
+          $project: {
+            friendId: "$friend",
+            friendUsername: "$friendDetails.username",
+            _id: 0,
+          },
+        },
+      ])
+      .toArray();
+  }
+
+  static likePost(postId, userId) {
+    const db = getDb();
+    return db
+      .collection("PostStats")
+      .updateOne(
+        { _id: new mongodb.ObjectId(postId) },
+        { $inc: { totalLikes: 1 }, $addToSet: { users: userId } },
+        { upsert: true }
+      );
+  }
+
+  static unlikePost(postId, userId) {
+    const db = getDb();
+    return db
+      .collection("PostStats")
+      .updateOne(
+        { _id: new mongodb.ObjectId(postId) },
+        { $inc: { totalLikes: -1 }, $pull: { users: userId } }
+      );
+  }
+
+  static getPostStats(postId) {
+    const db = getDb();
+    return db
+      .collection("PostStats")
+      .findOne({ _id: new mongodb.ObjectId(postId) });
+  }
+
+  static addComment(postId, comment, userId) {
+    const db = getDb();
+    return db.collection("PostStats").updateOne(
+      { _id: new mongodb.ObjectId(postId) },
+      {
+        $inc: { totalComments: 1 },
+        $push: {
+          commentUsers: {
+            _id: new mongodb.ObjectId(),
+            userId,
+            text: comment.text,
+            createdAt: comment.createdAt,
+          },
+        },
+      },
+      { upsert: true }
+    );
+  }
+
+  static getComments(postId) {
+    const db = getDb();
+
+    return db.collection("PostStats").aggregate([
+      { $match: { _id: new mongodb.ObjectId(postId) } },
+      { $unwind: "$commentUsers" },
       {
         $project: {
-          friend: { $convert: { input: "$friends", to: "objectId" } },
+          _id: 0,
+          _id: "$commentUsers._id",
+          userId: {
+            $convert: { input: "$commentUsers.userId", to: "objectId" },
+          },
+          text: "$commentUsers.text",
+          createdAt: "$commentUsers.createdAt",
         },
       },
       {
         $lookup: {
           from: "Users",
-          localField: "friend",
+          localField: "userId",
           foreignField: "_id",
-          as: "friendDetails",
+          as: "user",
         },
       },
-      { $unwind: '$friendDetails' },
-      { $project: { friendId: '$friend', friendUsername: '$friendDetails.username', _id: 0 } }
+      { $unwind: "$user" },
+      { $addFields: { username: "$user.username" } },
+      { $project: { user: 0 } },
     ]).toArray();
   }
 
