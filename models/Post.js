@@ -3,7 +3,7 @@ const mongodb = require("mongodb");
 const { getDb } = require("../utils/database");
 
 module.exports = class Post {
-  static createPost(userId, text, filePath, createdAt) {
+  static createPost(userId, text, filePath) {
     const db = getDb();
     return db.collection("Posts").updateOne(
       { _id: new mongodb.ObjectId(userId) },
@@ -13,7 +13,7 @@ module.exports = class Post {
             _id: new mongodb.ObjectId(),
             text: text,
             file: filePath,
-            createdAt: createdAt,
+            createdAt: new Date(),
           },
         },
       },
@@ -54,13 +54,13 @@ module.exports = class Post {
         { $unwind: "$friends" },
         {
           $project: {
-            friend: { $convert: { input: "$friends", to: "objectId" } },
+            friendId: { $convert: { input: "$friends", to: "objectId" } },
           },
         },
         {
           $lookup: {
             from: "Users",
-            localField: "friend",
+            localField: "friendId",
             foreignField: "_id",
             as: "friendDetails",
           },
@@ -68,8 +68,9 @@ module.exports = class Post {
         { $unwind: "$friendDetails" },
         {
           $project: {
-            friendId: "$friend",
+            friendId: 1,
             friendUsername: "$friendDetails.username",
+            friendImage: "$friendDetails.profileImage",
             _id: 0,
           },
         },
@@ -127,32 +128,35 @@ module.exports = class Post {
   static getComments(postId) {
     const db = getDb();
 
-    return db.collection("PostStats").aggregate([
-      { $match: { _id: new mongodb.ObjectId(postId) } },
-      { $unwind: "$commentUsers" },
-      {
-        $project: {
-          _id: 0,
-          _id: "$commentUsers._id",
-          userId: {
-            $convert: { input: "$commentUsers.userId", to: "objectId" },
+    return db
+      .collection("PostStats")
+      .aggregate([
+        { $match: { _id: new mongodb.ObjectId(postId) } },
+        { $unwind: "$commentUsers" },
+        {
+          $project: {
+            _id: 0,
+            _id: "$commentUsers._id",
+            userId: {
+              $convert: { input: "$commentUsers.userId", to: "objectId" },
+            },
+            text: "$commentUsers.text",
+            createdAt: "$commentUsers.createdAt",
           },
-          text: "$commentUsers.text",
-          createdAt: "$commentUsers.createdAt",
         },
-      },
-      {
-        $lookup: {
-          from: "Users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "user",
+        {
+          $lookup: {
+            from: "Users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
         },
-      },
-      { $unwind: "$user" },
-      { $addFields: { username: "$user.username" } },
-      { $project: { user: 0 } },
-    ]).toArray();
+        { $unwind: "$user" },
+        { $addFields: { username: "$user.username", userImage: "$user.profileImage" } },
+        { $project: { user: 0 } },
+      ])
+      .toArray();
   }
 
   static getPosts() {
@@ -178,6 +182,7 @@ module.exports = class Post {
             "posts.userId": {
               $convert: { input: "$userDetails._id", to: "string" },
             },
+            "posts.userImage": "$userDetails.profileImage",
           },
         },
         { $project: { posts: 1, _id: 0 } },
@@ -190,6 +195,16 @@ module.exports = class Post {
                 input: "$posts",
                 initialValue: [],
                 in: { $concatArrays: ["$$value", "$$this"] },
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            posts: {
+              $sortArray: {
+                input: "$posts",
+                sortBy: { createdAt: -1 },
               },
             },
           },
@@ -249,5 +264,43 @@ module.exports = class Post {
     //     },
     //   ])
     //   .toArray();
+  }
+
+  static getPostsOfUser(userId) {
+    const db = getDb();
+
+    return db
+      .collection("Posts")
+      .aggregate([
+        { $match: { _id: new mongodb.ObjectId(userId) } },
+        {
+          $lookup: {
+            from: "Users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        { $unwind: "$user" },
+        {
+          $addFields: {
+            "posts.username": "$user.username",
+            "posts.userId": "$user._id",
+            "posts.userImage": "$user.profileImage"
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            posts: {
+              $sortArray: {
+                input: '$posts',
+                sortBy: { createdAt: -1 }
+              }
+            }
+          },
+        },
+      ])
+      .toArray();
   }
 };

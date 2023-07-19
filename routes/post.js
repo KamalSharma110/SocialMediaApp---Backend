@@ -9,6 +9,8 @@ router.post('/create-post', isAuth, postControllers.createPost);
 
 router.get('/posts', isAuth, postControllers.getPosts);
 
+router.get('/posts/:userId', isAuth, postControllers.getPostsOfUser);
+
 router.post('/friend', isAuth, postControllers.addRemoveFriend);
 
 router.get('/friends', isAuth, postControllers.getFriends);

@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const authControllers = require("../controllers/auth");
 const { getUserByEmail, getUserByUsername } = require("../models/User");
 const User = require("../models/User");
+const isAuth = require("../middleware/is-auth");
 
 const router = express.Router();
 
@@ -66,5 +67,9 @@ router.post(
   ],
   authControllers.login
 );
+
+router.post('/update-profile', isAuth, authControllers.updateProfile);
+
+router.get('/profile/:userId', isAuth, authControllers.getProfile);
 
 module.exports = router;

@@ -1,10 +1,10 @@
 const Post = require("../models/Post");
 
 exports.createPost = (req, res, next) => {
-  const filePath = req.file?.path.replace("\\", "/");
-  const { userId, createdAt, text } = req.body;
+  const filePath = req.files.file?.at(0).path.replace("\\", "/");
+  const { userId, text } = req.body;
 
-  Post.createPost(userId, text, filePath, createdAt)
+  Post.createPost(userId, text, filePath)
     .then(() => res.status(201).json({ message: "Created!" }))
     .catch((err) => next(err));
 };
@@ -12,8 +12,15 @@ exports.createPost = (req, res, next) => {
 exports.getPosts = (req, res, next) => {
   Post.getPosts()
     .then((result) => {
+      // console.log(result[0]);
       res.status(200).json(result[0]);
     })
+    .catch((err) => next(err));
+};
+
+exports.getPostsOfUser = (req, res, next) => {
+  Post.getPostsOfUser(req.params.userId)
+    .then((result) => res.status(200).json(result[0]))
     .catch((err) => next(err));
 };
 
@@ -62,13 +69,11 @@ exports.unlikePost = (req, res, next) => {
 exports.getPostStats = (req, res, next) => {
   Post.getPostStats(req.params.postId)
     .then((result) =>
-      res
-        .status(200)
-        .json({
-          users: result?.users || [],
-          totalLikes: result?.totalLikes || 0,
-          totalComments: result?.totalComments || 0,
-        })
+      res.status(200).json({
+        users: result?.users || [],
+        totalLikes: result?.totalLikes || 0,
+        totalComments: result?.totalComments || 0,
+      })
     )
     .catch((err) => next(err));
 };

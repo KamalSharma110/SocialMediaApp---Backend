@@ -19,8 +19,14 @@ const diskStorage = multer.diskStorage({
 });
 
 app.use(bodyParser.json());
-app.use('/files', express.static(path.join(__dirname, 'files')));
-app.use(multer({ storage: diskStorage }).single("file"));
+app.use("/files", express.static(path.join(__dirname, "files")));
+app.use(
+  multer({ storage: diskStorage }).fields([
+    { name: "file", maxCount: 1 },
+    { name: "profileImage", maxCount: 1 },
+    { name: "coverImage", maxCount: 1 },
+  ])
+);
 
 app.use((req, res, next) => {
   res.set("Access-Control-Allow-Origin", "*");
