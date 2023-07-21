@@ -153,7 +153,12 @@ module.exports = class Post {
           },
         },
         { $unwind: "$user" },
-        { $addFields: { username: "$user.username", userImage: "$user.profileImage" } },
+        {
+          $addFields: {
+            username: "$user.username",
+            userImage: "$user.profileImage",
+          },
+        },
         { $project: { user: 0 } },
       ])
       .toArray();
@@ -286,7 +291,7 @@ module.exports = class Post {
           $addFields: {
             "posts.username": "$user.username",
             "posts.userId": "$user._id",
-            "posts.userImage": "$user.profileImage"
+            "posts.userImage": "$user.profileImage",
           },
         },
         {
@@ -294,13 +299,39 @@ module.exports = class Post {
             _id: 0,
             posts: {
               $sortArray: {
-                input: '$posts',
-                sortBy: { createdAt: -1 }
-              }
-            }
+                input: "$posts",
+                sortBy: { createdAt: -1 },
+              },
+            },
           },
         },
       ])
       .toArray();
+  }
+
+  static searchQuery(searchText) {
+    const db = getDb();
+
+    return db
+      .collection("Posts")
+      .aggregate([
+        { $unwind: "$posts" },
+        { $project: { _id: 0, _id: "$posts._id", text: "$posts.text" } },
+        { $out: "temp" },
+      ])
+      .toArray()
+      .then(() => {
+        return db.collection("temp").createIndex({ text: "text" });
+      })
+      .then(() => {
+        return db
+          .collection("temp")
+          .aggregate([
+            { $match: { $text: { $search: searchText } } },
+            { $group: { _id: 0, ids: { $push: "$_id" } } },
+            { $project: { _id: 0 } },
+          ])
+          .toArray();
+      });
   }
 };

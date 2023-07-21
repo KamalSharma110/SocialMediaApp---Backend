@@ -89,3 +89,9 @@ exports.getComments = (req, res, next) => {
     .then((result) => res.status(200).json({ comments: result }))
     .catch((err) => next(err));
 };
+
+exports.searchQuery = (req, res, next) => {
+  Post.searchQuery(req.body.searchText)
+    .then((result) => res.status(200).json(result[0] || {}))
+    .catch((err) => next(err));
+};

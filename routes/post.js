@@ -25,4 +25,6 @@ router.post('/comment/:postId', isAuth, postControllers.addComment);
 
 router.get('/comments/:postId', isAuth, postControllers.getComments);
 
+router.post('/search', isAuth, postControllers.searchQuery);
+
 module.exports = router;
