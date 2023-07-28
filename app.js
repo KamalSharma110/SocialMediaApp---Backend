@@ -6,6 +6,7 @@ const path = require("path");
 const { mongoConnect } = require("./utils/database");
 const authRoutes = require("./routes/auth");
 const postRoutes = require("./routes/post");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
@@ -15,14 +16,14 @@ const diskStorage = multer.diskStorage({
       null,
       file.fieldname + "-" + Date.now() + path.extname(file.originalname)
     ),
-  destination: "files",
+  destination: "images",
 });
 
 app.use(bodyParser.json());
-app.use("/files", express.static(path.join(__dirname, "files")));
+app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(
   multer({ storage: diskStorage }).fields([
-    { name: "file", maxCount: 1 },
+    { name: "image", maxCount: 1 },
     { name: "profileImage", maxCount: 1 },
     { name: "coverImage", maxCount: 1 },
   ])
@@ -41,12 +42,6 @@ app.use((req, res, next) => {
 app.use("/auth", authRoutes);
 app.use(postRoutes);
 
-app.use((err, req, res, next) => {
-  console.log(err);
-  const error = {};
-  error.statusCode = err.statusCode || 500;
-  error.message = err.message || "Something went wrong.";
-  res.status(error.statusCode).json({ error: error });
-});
+app.use(errorHandler);
 
 mongoConnect(() => app.listen(8080));

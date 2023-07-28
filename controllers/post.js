@@ -1,10 +1,10 @@
 const Post = require("../models/Post");
 
 exports.createPost = (req, res, next) => {
-  const filePath = req.files.file?.at(0).path.replace("\\", "/");
+  const imagePath = req.files.image?.at(0).path.replace("\\", "/");
   const { userId, text } = req.body;
 
-  Post.createPost(userId, text, filePath)
+  Post.createPost(userId, text, imagePath)
     .then(() => res.status(201).json({ message: "Created!" }))
     .catch((err) => next(err));
 };

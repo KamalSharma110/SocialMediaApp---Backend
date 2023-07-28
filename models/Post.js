@@ -3,7 +3,7 @@ const mongodb = require("mongodb");
 const { getDb } = require("../utils/database");
 
 module.exports = class Post {
-  static createPost(userId, text, filePath) {
+  static createPost(userId, text, imagePath) {
     const db = getDb();
     return db.collection("Posts").updateOne(
       { _id: new mongodb.ObjectId(userId) },
@@ -12,8 +12,8 @@ module.exports = class Post {
           posts: {
             _id: new mongodb.ObjectId(),
             text: text,
-            file: filePath,
-            createdAt: new Date(),
+            file: imagePath || "",
+            createdAt: "new Date()",
           },
         },
       },
@@ -84,7 +84,7 @@ module.exports = class Post {
       .collection("PostStats")
       .updateOne(
         { _id: new mongodb.ObjectId(postId) },
-        { $inc: { totalLikes: 1 }, $addToSet: { users: userId } },
+        { $inc: { totalLikes: 1 }, $addToSet: { likeUsers: userId } },
         { upsert: true }
       );
   }
@@ -95,7 +95,7 @@ module.exports = class Post {
       .collection("PostStats")
       .updateOne(
         { _id: new mongodb.ObjectId(postId) },
-        { $inc: { totalLikes: -1 }, $pull: { users: userId } }
+        { $inc: { totalLikes: -1 }, $pull: { likeUsers: userId } }
       );
   }
 
@@ -117,7 +117,7 @@ module.exports = class Post {
             _id: new mongodb.ObjectId(),
             userId,
             text: comment.text,
-            createdAt: comment.createdAt,
+            createdAt: new Date(),
           },
         },
       },
@@ -159,7 +159,12 @@ module.exports = class Post {
             userImage: "$user.profileImage",
           },
         },
-        { $project: { user: 0 } },
+        {
+          $project: {
+            user: 0,
+          },
+        },
+        { $sort: { createdAt: -1 } },
       ])
       .toArray();
   }
