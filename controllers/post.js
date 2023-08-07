@@ -1,11 +1,20 @@
+const mongodb = require("mongodb");
+
 const Post = require("../models/Post");
+const User = require("../models/User");
+const { getIO, getUsers } = require("../utils/socketio");
 
 exports.createPost = (req, res, next) => {
   const imagePath = req.files.image?.at(0).path.replace("\\", "/");
   const { userId, text } = req.body;
+  const postId = new mongodb.ObjectId();
 
-  Post.createPost(userId, text, imagePath)
-    .then(() => res.status(201).json({ message: "Created!" }))
+  Post.createPost(postId, userId, text, imagePath)
+    .then(() => {
+      const io = getIO();
+      io.emit("post_added");
+      res.status(201).json({ message: "Created!" });
+    })
     .catch((err) => next(err));
 };
 
@@ -24,24 +33,41 @@ exports.getPostsOfUser = (req, res, next) => {
     .catch((err) => next(err));
 };
 
-exports.addRemoveFriend = (req, res, next) => {
+exports.addRemoveFriend = async (req, res, next) => {
   const { currentUserId, friendId } = req.body;
+  const io = getIO();
+  const users = getUsers();
 
   if (req.query.add === "true") {
-    Post.addFriend(currentUserId, friendId)
-      .then(() => {
-        Post.addFriend(friendId, currentUserId);
-      })
-      .then(() => {
-        res.status(200).json({ message: "Friend added" });
-      })
-      .catch((err) => next(err));
+    try {
+      let result;
+      await Post.addFriend(currentUserId, friendId);
+      await Post.addFriend(friendId, currentUserId);
+      result = await User.getProfile(friendId);
+      io.to(users[currentUserId]).emit("add_friend", {
+        username: result.username,
+        profileImage: result.profileImage,
+        id: friendId,
+      });
+      result = await User.getProfile(currentUserId);
+      io.to(users[friendId]).emit("add_friend", {
+        username: result.username,
+        profileImage: result.profileImage,
+        id: currentUserId,
+      });
+      res.status(200).json({ message: "Friend added" });
+    } catch (err) {
+      next(err);
+    }
   } else {
     Post.removeFriend(currentUserId, friendId)
       .then(() => {
         Post.removeFriend(friendId, currentUserId);
       })
       .then(() => {
+        io.to(users[currentUserId]).emit("remove_friend", { id: friendId });
+        io.to(users[friendId]).emit("remove_friend", { id: currentUserId });
+
         res.status(200).json({ message: "Friend removed" });
       })
       .catch((err) => next(err));
@@ -70,7 +96,7 @@ exports.getPostStats = (req, res, next) => {
   Post.getPostStats(req.params.postId)
     .then((result) =>
       res.status(200).json({
-        users: result?.users || [],
+        likeUsers: result?.likeUsers || [],
         totalLikes: result?.totalLikes || 0,
         totalComments: result?.totalComments || 0,
       })

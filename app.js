@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const multer = require("multer");
 const path = require("path");
 
+const { init, getUsers } = require("./utils/socketio");
 const { mongoConnect } = require("./utils/database");
 const authRoutes = require("./routes/auth");
 const postRoutes = require("./routes/post");
@@ -44,4 +45,13 @@ app.use(postRoutes);
 
 app.use(errorHandler);
 
-mongoConnect(() => app.listen(8080));
+mongoConnect(() => {
+  const io = init(app.listen(8080));
+  io.on("connection", (socket) => {
+    console.log("A client was connected.");
+    socket.on("store_user", (data) => {
+      const users = getUsers();
+      users[data.userId] = socket.id;
+    });
+  });
+});

@@ -3,17 +3,17 @@ const mongodb = require("mongodb");
 const { getDb } = require("../utils/database");
 
 module.exports = class Post {
-  static createPost(userId, text, imagePath) {
+  static createPost(postId, userId, text, imagePath) {
     const db = getDb();
     return db.collection("Posts").updateOne(
       { _id: new mongodb.ObjectId(userId) },
       {
         $push: {
           posts: {
-            _id: new mongodb.ObjectId(),
+            _id: postId,
             text: text,
             file: imagePath || "",
-            createdAt: "new Date()",
+            createdAt: new Date(),
           },
         },
       },
