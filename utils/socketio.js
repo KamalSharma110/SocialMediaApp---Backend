@@ -1,3 +1,5 @@
+const { base_url } = require('../config');
+
 let _io;
 let users = {};
 
@@ -5,7 +7,7 @@ module.exports = {
     init: (httpServer) => {
         _io = require('socket.io')(httpServer, {
             cors: {
-                origin: 'http://localhost:3000',
+                origin: base_url,
                 methods: ["GET", "POST", "PUT", "DELETE"],
             }
         });

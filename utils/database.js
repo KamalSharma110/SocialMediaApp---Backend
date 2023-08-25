@@ -1,9 +1,10 @@
 const mongodb = require("mongodb");
+const { mongodb_uri } = require("../config");
 let _db;
 
 const mongoConnect = (cb) => {
   mongodb.MongoClient.connect(
-    "mongodb+srv://kamal2507s:Kamalsharma1$@cluster0.t4bgmfd.mongodb.net/?retryWrites=true&w=majority"
+    mongodb_uri
   )
     .then((client) => {
       _db = client.db("SocialMediaApp");
