@@ -21,7 +21,7 @@ exports.createPost = (req, res, next) => {
 exports.getPosts = (req, res, next) => {
   Post.getPosts()
     .then((result) => {
-      // console.log(result[0]);
+      result[0].posts.sort((a, b) => b.createdAt - a.createdAt);
       res.status(200).json(result[0]);
     })
     .catch((err) => next(err));
@@ -29,7 +29,10 @@ exports.getPosts = (req, res, next) => {
 
 exports.getPostsOfUser = (req, res, next) => {
   Post.getPostsOfUser(req.params.userId)
-    .then((result) => res.status(200).json(result[0]))
+    .then((result) => {
+      result[0].posts.sort((a, b) => b.createdAt - a.createdAt);
+      res.status(200).json(result[0])
+    })
     .catch((err) => next(err));
 };
 

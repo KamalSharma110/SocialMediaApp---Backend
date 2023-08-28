@@ -209,16 +209,6 @@ module.exports = class Post {
             },
           },
         },
-        {
-          $project: {
-            posts: {
-              $sortArray: {
-                input: "$posts",
-                sortBy: { createdAt: -1 },
-              },
-            },
-          },
-        },
       ])
       .toArray();
 
@@ -297,17 +287,6 @@ module.exports = class Post {
             "posts.username": "$user.username",
             "posts.userId": "$user._id",
             "posts.userImage": "$user.profileImage",
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            posts: {
-              $sortArray: {
-                input: "$posts",
-                sortBy: { createdAt: -1 },
-              },
-            },
           },
         },
       ])
